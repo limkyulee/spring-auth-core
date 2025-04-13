@@ -2,6 +2,7 @@ package hello.login.web.login;
 
 import hello.login.domain.login.LoginService;
 import hello.login.domain.member.Member;
+import hello.login.web.session.SessionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
@@ -20,14 +22,15 @@ import javax.validation.Valid;
 public class LoginController {
 
     private final LoginService loginService;
+    private final SessionManager sessionManager;
 
     @GetMapping("/login")
     public String loginForm(@ModelAttribute LoginForm loginForm) {
         return "/login/loginForm";
     }
 
-    @PostMapping("/login")
-    public String login(@Valid @ModelAttribute LoginForm loginForm, BindingResult bindingResult, HttpServletResponse response) {
+//    @PostMapping("/login")
+    public String loginUsingCookie(@Valid @ModelAttribute LoginForm loginForm, BindingResult bindingResult, HttpServletResponse response) {
         // 입력값 오류 검증.
         if(bindingResult.hasErrors()) {
             log.error(bindingResult.getFieldError().getDefaultMessage());
@@ -52,9 +55,40 @@ public class LoginController {
         return "redirect:/";
     }
 
-    @PostMapping("/logout")
-    public String logout(HttpServletResponse response) {
+    @PostMapping("/login")
+    public String loginUsingSession(@Valid @ModelAttribute LoginForm loginForm, BindingResult bindingResult, HttpServletResponse response) {
+        // 입력값 오류 검증.
+        if(bindingResult.hasErrors()) {
+            log.error(bindingResult.getFieldError().getDefaultMessage());
+            return "/login/loginForm";
+        }
+
+        // 로그인 실행
+        Member login = loginService.login(loginForm.getLoginId(), loginForm.getPassword());
+
+        // 로그인 실패 검증
+        if(login == null) {
+            bindingResult.reject("loginFail", "아이디 또는 비밀번호가 맞지않습니다.");
+            return "/login/loginForm";
+        }
+
+        // 로그인 성공 로직
+        // REFACTOR : 세션 관리자를 통해 세션을 생성하고, 회원 데이터 보관
+        sessionManager.createSession(login, response);
+
+        return "redirect:/";
+    }
+
+//    @PostMapping("/logout")
+    public String logoutUsingCookie(HttpServletResponse response) {
         expireCookie(response, "memberId");
+
+        return "redirect:/";
+    }
+
+    @PostMapping("/logout")
+    public String logoutUsingSession(HttpServletRequest request) {
+        sessionManager.expireSession(request);
 
         return "redirect:/";
     }
