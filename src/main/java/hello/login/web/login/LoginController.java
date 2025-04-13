@@ -2,6 +2,7 @@ package hello.login.web.login;
 
 import hello.login.domain.login.LoginService;
 import hello.login.domain.member.Member;
+import hello.login.web.SessionConst;
 import hello.login.web.session.SessionManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
 @Slf4j
@@ -55,7 +57,7 @@ public class LoginController {
         return "redirect:/";
     }
 
-    @PostMapping("/login")
+//    @PostMapping("/login")
     public String loginUsingSession(@Valid @ModelAttribute LoginForm loginForm, BindingResult bindingResult, HttpServletResponse response) {
         // 입력값 오류 검증.
         if(bindingResult.hasErrors()) {
@@ -79,6 +81,31 @@ public class LoginController {
         return "redirect:/";
     }
 
+    @PostMapping("/login")
+    public String loginUsingHttpSession(@Valid @ModelAttribute LoginForm loginForm, BindingResult bindingResult, HttpServletRequest request) {
+        // 입력값 오류 검증.
+        if(bindingResult.hasErrors()) {
+            log.error(bindingResult.getFieldError().getDefaultMessage());
+            return "/login/loginForm";
+        }
+
+        // 로그인 실행
+        Member login = loginService.login(loginForm.getLoginId(), loginForm.getPassword());
+
+        // 로그인 실패 검증
+        if(login == null) {
+            bindingResult.reject("loginFail", "아이디 또는 비밀번호가 맞지않습니다.");
+            return "/login/loginForm";
+        }
+
+        // 로그인 성공 로직
+        // REFACTOR : HttpSession 사용하도록 로직 수정.
+        HttpSession session = request.getSession();
+        session.setAttribute(SessionConst.LOGIN_MEMBER, login);
+
+        return "redirect:/";
+    }
+
 //    @PostMapping("/logout")
     public String logoutUsingCookie(HttpServletResponse response) {
         expireCookie(response, "memberId");
@@ -86,9 +113,19 @@ public class LoginController {
         return "redirect:/";
     }
 
-    @PostMapping("/logout")
+//    @PostMapping("/logout")
     public String logoutUsingSession(HttpServletRequest request) {
         sessionManager.expireSession(request);
+
+        return "redirect:/";
+    }
+
+    @PostMapping("/logout")
+    public String logoutUsingHttpSession(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if(session != null) {
+            session.invalidate();
+        }
 
         return "redirect:/";
     }
