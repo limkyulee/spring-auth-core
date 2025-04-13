@@ -16,6 +16,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 
 @Slf4j
@@ -81,7 +82,7 @@ public class LoginController {
         return "redirect:/";
     }
 
-    @PostMapping("/login")
+//    @PostMapping("/login")
     public String loginUsingHttpSession(@Valid @ModelAttribute LoginForm loginForm, BindingResult bindingResult, HttpServletRequest request) {
         // 입력값 오류 검증.
         if(bindingResult.hasErrors()) {
@@ -104,6 +105,34 @@ public class LoginController {
         session.setAttribute(SessionConst.LOGIN_MEMBER, login);
 
         return "redirect:/";
+    }
+
+    @PostMapping("/login")
+    public String loginUsingRedirect(@Valid @ModelAttribute LoginForm loginForm,
+                                     BindingResult bindingResult,
+                                     @RequestParam(name="redirectURL",defaultValue = "/") String redirectURL,
+                                     HttpServletRequest request) {
+        // 입력값 오류 검증.
+        if(bindingResult.hasErrors()) {
+            return "/login/loginForm";
+        }
+
+        // 로그인 실행
+        Member login = loginService.login(loginForm.getLoginId(), loginForm.getPassword());
+
+        // 로그인 실패 검증
+        if(login == null) {
+            bindingResult.reject("loginFail", "아이디 또는 비밀번호가 맞지않습니다.");
+            return "/login/loginForm";
+        }
+
+        // 로그인 성공 로직
+        HttpSession session = request.getSession();
+        session.setAttribute(SessionConst.LOGIN_MEMBER, login);
+
+        // REFACTOR : redirectUrl 이 있을 경우 해당 경로로 이동하도록 로직 수정.
+        log.info("redirectURL {} :", redirectURL);
+        return "redirect:" + redirectURL;
     }
 
 //    @PostMapping("/logout")
