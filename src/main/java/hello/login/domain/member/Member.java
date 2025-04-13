@@ -1,9 +1,7 @@
 package hello.login.domain.member;
 
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
-
-import javax.validation.constraints.NotEmpty;
-
 
 @Data
 public class Member {
