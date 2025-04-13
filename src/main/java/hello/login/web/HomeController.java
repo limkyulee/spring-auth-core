@@ -2,6 +2,7 @@ package hello.login.web;
 
 import hello.login.domain.member.Member;
 import hello.login.domain.member.MemberRepository;
+import hello.login.web.argumentresolver.Login;
 import hello.login.web.session.SessionManager;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -77,8 +78,20 @@ public class HomeController {
 
 
 //  REFACTOR : @SessionAttribute 사용하도록 로직 수정. | 세션을 생성하는 기능은 없고 세션을 가져오기만 함.
-    @GetMapping("/")
+//    @GetMapping("/")
     public String homeLoginUsingSpring(@SessionAttribute(name=SessionConst.LOGIN_MEMBER, required = false) Member member, Model model) {
+        if(member == null) {
+            return "home";
+        }
+
+        // 세션이 유지되면 로그인으로 이동
+        model.addAttribute("member", member);
+        return "loginHome";
+    }
+
+//  REFACTOR : ArgumentResolver 사용하도록 로직 수정. | Login 전용 애노테이션 생성하여 사용. (WebConfig 에 등록하여 사용)
+    @GetMapping("/")
+    public String homeLoginUsingArgumentResolver(@Login Member member, Model model) {
         if(member == null) {
             return "home";
         }
