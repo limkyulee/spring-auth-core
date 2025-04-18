@@ -1,4 +1,4 @@
-# Spring Auth Core
+# Spring MVC - Auth
  Spring MVC 프레임워크를 사용한 인증 관련 로직 학습.
 
  ### Features
